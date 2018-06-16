@@ -1,4 +1,5 @@
 ﻿CREATE DOMAIN t_tipo AS varchar(10)
+--Es un comentraio
 	DEFAULT 'TIPO 1'
 	CHECK (VALUE IN ('TIPO 1','TIPO 2','TIPO 3','TIPO 4') );
 CREATE TABLE "Clientes" (
