@@ -1,0 +1,92 @@
+﻿CREATE DOMAIN t_tipo AS varchar(10)
+	DEFAULT 'TIPO 1'
+	CHECK (VALUE IN ('TIPO 1','TIPO 2','TIPO 3','TIPO 4') );
+CREATE TABLE "Clientes" (
+	"nro_Cliente" integer NOT NULL,
+	"Nombre" varchar(50) NOT NULL,
+	tipo t_tipo,
+	direccion varchar(50),
+	CONSTRAINT "pk_Cliente" PRIMARY KEY ("nro_Cliente")
+);
+CREATE TABLE "Categoria" (
+	nro_categ integer NOT NULL,
+	descripcion varchar(100),
+	CONSTRAINT "pk_Categoria" PRIMARY KEY (nro_categ)
+);
+
+CREATE DOMAIN t_forma_pago varchar(15)
+	DEFAULT 'EFECTIVO'
+	CHECK (VALUE IN('EFECTIVO','DEBITO','CREDITO','CHEQUE'));
+CREATE TABLE "Venta" (
+	"nro_Factura" integer NOT NULL,
+	"Fecha_Vta" date NOT NULL,
+	"nro_Cliente" integer NOT NULL,
+	"Nombre" varchar(50),
+	forma_pago  t_forma_pago,
+	CONSTRAINT "pk_Venta" PRIMARY KEY ("nro_Factura"),
+	CONSTRAINT "fk_nro_Cliente" FOREIGN KEY ("nro_Cliente") REFERENCES public."Clientes" ("nro_Cliente") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
+--	CONSTRAINT "fk_Nombre" FOREIGN KEY ("Nombre") REFERENCES public."Clientes" ("Nombre") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
+);
+--el campo cantidad, es en el pdf, unidad.
+CREATE TABLE "Detalle_Vta" (
+	nro_factura integer NOT NULL,
+	nro_producto integer NOT NULL,
+	descripcion varchar(100),
+	cantidad integer,
+	precio float,
+	CONSTRAINT "pk_Detalle_Vta" PRIMARY KEY (nro_factura)
+	
+);
+
+
+--Funcion que agrega Clientes.
+CREATE OR REPLACE FUNCTION "agregar_Clientes"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+j integer;
+k integer;
+nro_cliente integer;
+nombre_cliente varchar(50);
+tipo_cliente t_tipo;
+direccion_cliente varchar(50);
+BEGIN
+	i=1;
+	FOR i IN i..cantidad LOOP
+		nro_cliente = (SELECT MAX("nro_Cliente") FROM "Clientes")+1;
+		nombre_cliente = ('Cliente ' || nro_cliente);
+		j = (SELECT CEIL(random()*4));
+		CASE j 
+			WHEN 1 THEN 
+				tipo_cliente := 'TIPO 1';
+			WHEN 2 THEN
+				tipo_cliente := 'TIPO 2';
+			WHEN 3 THEN 
+				tipo_cliente := 'TIPO 3';
+			ELSE 
+				tipo_cliente := 'TIPO 4';
+		END CASE;
+		k = (SELECT CEIL(random()*5));
+		CASE k
+			WHEN 1 THEN
+				direccion_cliente := 'San Martin ' || nro_cliente || ' y 28 de Julio';
+			WHEN 2 THEN
+				direccion_cliente := 'Almirante Brown ' || nro_cliente || ' y Perito Moreno';
+			WHEN 3 THEN
+				direccion_cliente := 'Manuel Belgrano ' || nro_cliente;
+			WHEN 3 THEN
+				direccion_cliente := 'Ricardo Berwin ' || nro_cliente;
+			ELSE
+				direccion_cliente := 'Avenida Fontana ' || nro_cliente || ' e Italia';
+		END CASE;
+		INSERT INTO "Clientes" VALUES (nro_cliente,nombre_cliente,tipo_cliente,direccion_cliente);
+	END LOOP;
+
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql; 
+--Llamada a la funcion para agregar clientes.
+SELECT ("agregar_Clientes"(8))
+
+
