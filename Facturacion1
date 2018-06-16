@@ -109,4 +109,5 @@ LANGUAGE plpgsql;
 
 INSERT INTO "Categoria" VALUES (1,'Primer Categoria');
 
-SELECT ( "crear_Categorias"(5) )
+SELECT ( "crear_Categorias"(5) );
+SELECT * FROM "Clientes";
