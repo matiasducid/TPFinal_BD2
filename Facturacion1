@@ -89,4 +89,24 @@ LANGUAGE plpgsql;
 --Llamada a la funcion para agregar clientes.
 SELECT ("agregar_Clientes"(8))
 
+CREATE OR REPLACE FUNCTION "crear_Categorias"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+nro_categoria integer;
+descripcion_categoria varchar(100);
+BEGIN
+	i = 1;
+	FOR i IN i..cantidad LOOP
+		nro_categoria = (SELECT MAX(nro_categ) FROM "Categoria") +1;
+		descripcion_categoria = ('Esta es la descripcion, CATEGORIA ' || nro_categoria);
+		INSERT INTO "Categoria" VALUES (nro_categoria, descripcion_categoria);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
 
+INSERT INTO "Categoria" VALUES (1,'Primer Categoria');
+
+SELECT ( "crear_Categorias"(5) )
