@@ -91,3 +91,46 @@ LANGUAGE plpgsql;
 SELECT ("agregar_Clientes"(8))
 
 
+--Funcion que agrega Ventas
+CREATE OR REPLACE FUNCTION "agregar_Ventas"(cantidad integer) RETURNS TEXT AS $$
+DECLARE
+nro_factura integer;
+fecha_venta date;
+nro_cliente integer;
+nombre_cliente varchar(50);
+forma_pago varchar(15);
+i integer;
+j integer;
+BEGIN			
+	FOR i in 1..cantidad LOOP
+		nro_factura = (SELECT MAX("nro_Factura") FROM "Venta")+1;				
+		fecha_venta = (SELECT now() - random() * interval '5 years');
+		nro_cliente = (SELECT CEIL (random() * (SELECT MAX("nro_Cliente") FROM "Clientes")));
+		nombre_cliente= (SELECT "Nombre" FROM "Clientes" where nro_cliente="nro_Cliente");
+		j = (SELECT CEIL(random()*3));
+		CASE j
+			WHEN 1 THEN
+				forma_pago='EFECTIVO';
+			WHEN 2 THEN
+				forma_pago='DEBITO';
+			WHEN 3 THEN
+				forma_pago='CREDITO';
+			ELSE
+				forma_pago='CHEQUE';
+		END CASE;
+		INSERT INTO "Venta" VALUES (nro_factura, fecha_venta, nro_cliente, nombre_cliente,forma_pago);
+	END LOOP;
+	RETURN 'OK';
+END;
+$$
+LANGUAGE plpgsql; 
+
+SELECT ("agregar_Ventas"(5));
+
+
+--Inserts iniciales para poder correr functions
+INSERT INTO "Clientes" VALUES (1,'Juan Perez','TIPO 1','Siempre Viva 123');
+SELECT * FROM "Clientes";
+
+INSERT INTO "Venta" VALUES (1,(select now() - random() * interval '5 years'),1,(SELECT "Nombre" from "Clientes" WHERE "nro_Cliente"=1) );
+SELECT * FROM "Venta";
