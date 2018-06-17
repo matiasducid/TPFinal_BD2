@@ -156,3 +156,4 @@ LANGUAGE plpgsql;
 INSERT INTO "Producto" VALUES(1,'Primer Producto',1,250);
 --Utilizo la Funcion para crear mas tupas de productos.
 SELECT("agregar_Productos"(9));
+-- assd
