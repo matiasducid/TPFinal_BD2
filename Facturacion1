@@ -1,5 +1,4 @@
 ﻿CREATE DOMAIN t_tipo AS varchar(10)
---Es un comentraio
 	DEFAULT 'TIPO 1'
 	CHECK (VALUE IN ('TIPO 1','TIPO 2','TIPO 3','TIPO 4') );
 CREATE TABLE "Clientes" (
@@ -25,7 +24,7 @@ CREATE TABLE "Venta" (
 	"Nombre" varchar(50),
 	forma_pago  t_forma_pago,
 	CONSTRAINT "pk_Venta" PRIMARY KEY ("nro_Factura"),
-	CONSTRAINT "fk_nro_Cliente" FOREIGN KEY ("nro_Cliente") REFERENCES public."Clientes" ("nro_Cliente") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
+	CONSTRAINT "fk_nro_Cliente" FOREIGN KEY ("nro_Cliente") REFERENCES public."Clientes" ("nro_Cliente") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE;
 --	CONSTRAINT "fk_Nombre" FOREIGN KEY ("Nombre") REFERENCES public."Clientes" ("Nombre") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
 );
 --el campo cantidad, es en el pdf, unidad.
@@ -35,11 +34,30 @@ CREATE TABLE "Detalle_Vta" (
 	descripcion varchar(100),
 	cantidad integer,
 	precio float,
-	CONSTRAINT "pk_Detalle_Vta" PRIMARY KEY (nro_factura)
-	
+	CONSTRAINT "pk_Detalle_Vta" PRIMARY KEY (nro_factura),
+	CONSTRAINT fk_nro_producto FOREIGN KEY (nro_producto) REFERENCES public."Producto" ("nro_Producto") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+--Creo la Tabla Productos.
+CREATE TABLE "Producto" (
+	"nro_Producto" integer NOT NULL,
+	"Nombre" varchar(50) NOT NULL,
+	nro_categ integer NOT NULL,
+	precio_actual integer NOT NULL,
+	CONSTRAINT "pk_Producto" PRIMARY KEY ("nro_Producto"),
+	CONSTRAINT fk_nro_categ FOREIGN KEY (nro_categ) REFERENCES public."Categoria" (nro_categ)
+);
+--Agregué en create table "producto" la foreign key que representa este alter table.
+--ALTER TABLE "Detalle_Vta" 
+--	ADD CONSTRAINT fk_nro_producto FOREIGN KEY ("nro_Producto") 
+--	REFERENCES public."Producto" ("nro_Producto") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE;
 
+
+
+-- ___________________________________________________________________________________________________________________________________
+
+
+	
 --Funcion que agrega Clientes.
 CREATE OR REPLACE FUNCTION "agregar_Clientes"(cantidad integer) RETURNS TEXT AS
 $$
@@ -90,6 +108,56 @@ LANGUAGE plpgsql;
 --Llamada a la funcion para agregar clientes.
 SELECT ("agregar_Clientes"(8))
 
+--Definición de la funcion "crearCategorias" crea categorias distintas para cada tipo nuevo según el número pasado por parámetro.
+CREATE OR REPLACE FUNCTION "crear_Categorias"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+nro_categoria integer;
+descripcion_categoria varchar(100);
+BEGIN
+	i = 1;
+	FOR i IN i..cantidad LOOP
+		nro_categoria = (SELECT MAX(nro_categ) FROM "Categoria") +1;
+		descripcion_categoria = ('Esta es la descripcion, CATEGORIA ' || nro_categoria);
+		INSERT INTO "Categoria" VALUES (nro_categoria, descripcion_categoria);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Se crea el primer elemento (Precondición de la función).
+INSERT INTO "Categoria" VALUES (1,'Primer Categoria');
+--Llamo a la función que crea categorias.
+SELECT ( "crear_Categorias"(5));
+
+--Definicion de la funcion "agregar_Productos" genera y agrega la cantidad de productos segun el número que pasen por parámetro.
+CREATE OR REPLACE FUNCTION "agregar_Productos"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+nro_producto integer;
+nombre_producto varchar(50);
+numero_categ_producto integer;
+precio_actual_producto integer;
+BEGIN
+	i = 1;
+	FOR i IN i..cantidad LOOP
+		nro_producto = (SELECT MAX("nro_Producto") FROM "Producto") + 1;
+		nombre_producto = ('PRODUCTO ' || nro_producto);
+		numero_categ_producto = (SELECT CEIL(random()*(SELECT MAX(nro_categ) FROM "Categoria")));
+		precio_actual_producto = (SELECT CEIL(random()* 1000)+100);		
+		INSERT INTO "Producto" VALUES (nro_producto,nombre_producto,numero_categ_producto,precio_actual_producto);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Creo una primer tupla de Producto.
+INSERT INTO "Producto" VALUES(1,'Primer Producto',1,250);
+--Utilizo la Funcion para crear mas tupas de productos.
+SELECT("agregar_Productos"(9));
+
 
 --Funcion que agrega Ventas
 CREATE OR REPLACE FUNCTION "agregar_Ventas"(cantidad integer) RETURNS TEXT AS $$
@@ -127,10 +195,6 @@ LANGUAGE plpgsql;
 
 SELECT ("agregar_Ventas"(5));
 
-
---Inserts iniciales para poder correr functions
-INSERT INTO "Clientes" VALUES (1,'Juan Perez','TIPO 1','Siempre Viva 123');
-SELECT * FROM "Clientes";
-
+--Insert inicial para "Venta"
 INSERT INTO "Venta" VALUES (1,(select now() - random() * interval '5 years'),1,(SELECT "Nombre" from "Clientes" WHERE "nro_Cliente"=1) );
 SELECT * FROM "Venta";
