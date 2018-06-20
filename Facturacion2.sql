@@ -16,17 +16,14 @@ CREATE TABLE "Categoria"(
     CONSTRAINT "pk_cod_categoria" PRIMARY KEY ("cod_categoria"),
     CONSTRAINT "fk_cod_subcategoria" FOREIGN KEY ("cod_subcategoria") REFERENCES "Categoria"
 );
-
+CREATE DOMAIN t_cod_tipo AS integer
+    DEFAULT 1 
+    CHECK (VALUE IN (1,2,3,4));--son cuatro tipos en facturacion1
 CREATE TABLE "Tipo_Cliente" (
     cod_tipo t_cod_tipo NOT NULL,
     descripcion varchar(100),
     CONSTRAINT "pk_Tipo_Cliente" PRIMARY KEY (cod_tipo)
 );
-
-CREATE DOMAIN t_cod_tipo AS integer
-    DEFAULT 1 
-    CHECK (VALUE IN (1,2,3,4));--son cuatro tipos en facturacion1
-
 CREATE TABLE "Clientes"(
     "cod_Cliente" varchar(8) NOT NULL,
     "Nombre" varchar(50) NOT NULL,
@@ -35,8 +32,6 @@ CREATE TABLE "Clientes"(
     CONSTRAINT "pk_Cliente" PRIMARY KEY ("cod_Cliente"),
     CONSTRAINT "fk_Tipo_Cliente" FOREIGN KEY (cod_tipo) REFERENCES "Tipo_Cliente"
 );
-
-
 CREATE TABLE "Producto"(
     "cod_Producto" integer NOT NULL,
     "Nombre" varchar(50),
@@ -47,8 +42,6 @@ CREATE TABLE "Producto"(
     CONSTRAINT "fk_cod_categoria" FOREIGN KEY (cod_categoria) REFERENCES "Categoria"--(cod_categoria)
     --CONSTRAINT "fk_cod_subcategoria" FOREIGN KEY (cod_subcategoria)
 );
-
-
 CREATE TABLE "Venta"(
     "Fecha_Vta" date NOT NULL, 
     "Id_Factura" integer NOT NULL,
@@ -58,12 +51,9 @@ CREATE TABLE "Venta"(
     CONSTRAINT "pk_Id_Factura" PRIMARY KEY ("Id_Factura"),
     CONSTRAINT "fk_cod_Cliente" FOREIGN KEY ("cod_Cliente") REFERENCES "Clientes"
 );
-
 CREATE DOMAIN t_forma_pago varchar(15)
     DEFAULT 'EFECTIVO'
     CHECK (VALUE IN('EFECTIVO','DEBITO','CREDITO','CHEQUE'));
-
-
 CREATE TABLE "Detalle_Venta"(
     "Id_Factura" integer NOT NULL,
     cod_producto integer NOT NULL,
@@ -73,8 +63,6 @@ CREATE TABLE "Detalle_Venta"(
     CONSTRAINT "fk_Id_Factura" FOREIGN KEY ("Id_Factura") REFERENCES "Venta",
     CONSTRAINT "fk_cod_producto" FOREIGN KEY ("cod_producto") REFERENCES "Producto"
 );
-
-
 CREATE TABLE "Medio_Pago"(
     "cod_Medio_Pago" t_forma_pago,
     descripcion varchar(50),
@@ -83,8 +71,6 @@ CREATE TABLE "Medio_Pago"(
     tipo_operacion integer, --varchar(50) o definir un tipo?
     CONSTRAINT "pk_Medio_Pago" PRIMARY KEY ("cod_Medio_Pago")
 );
-
-
 CREATE TABLE "Tiempo"(
     "Id_fecha" integer,--timestamp, date ?
     dia integer CHECK (dia between 1 AND 31),
@@ -93,3 +79,138 @@ CREATE TABLE "Tiempo"(
     año integer CHECK (año between 2000 and date_part('year',now())),
     CONSTRAINT "pk_Id_Fecha" PRIMARY KEY ("Id_fecha")
 );
+
+
+------------------------------------------------------------------------------------------------------------
+--Sector de funciones que agregan tuplasa cada tabla.
+
+
+CREATE TABLE "Categoria"(
+    cod_categoria integer,
+    cod_subcategoria integer NOT NULL,
+    descripcion varchar(100),
+    CONSTRAINT "pk_cod_categoria" PRIMARY KEY ("cod_categoria"),
+    CONSTRAINT "fk_cod_subcategoria" FOREIGN KEY ("cod_subcategoria") REFERENCES "Categoria"
+);
+--Funcion que agrega tuplas a la tabla Categoria.
+CREATE OR REPLACE FUNCTION "crear_Categoria"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+cod_categ integer;
+cod_subcategoria integer;
+descripcion varchar(100);
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+		cod_categ = (SELECT MAX(cod_categoria) FROM "Categoria") +1;
+		cod_subcategoria = (SELECT CEIL (random()*(SELECT MAX(cod_categoria) FROM "Categoria")));
+		descripcion = ('DESCRIPCION ' || cod_categ);
+		INSERT INTO "Categoria" VALUES(cod_categ,cod_subcategoria,descripcion);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Inserto una primer tupla.
+INSERT INTO "Categoria" VALUES(1,1,'Primer Descripcion');
+--Utilizo la funcion que crea tuplas en la tabla Categoria.
+SELECT("crear_Categoria"(5));
+----------------
+
+CREATE OR REPLACE FUNCTION "crear_Tipo_Cliente"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+------------------
+
+CREATE OR REPLACE FUNCTION "crear_Clientes"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+------------------
+
+CREATE OR REPLACE FUNCTION "crear_Producto"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+---------------
+
+CREATE OR REPLACE FUNCTION "crear_Venta"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+---------------
+
+CREATE OR REPLACE FUNCTION "crear_Detalle_Venta"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+------------------
+
+CREATE OR REPLACE FUNCTION "crear_Medio_Pago"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--------------------
+
+CREATE OR REPLACE FUNCTION "crear_Tiempo"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
