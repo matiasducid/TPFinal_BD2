@@ -85,13 +85,6 @@ CREATE TABLE "Tiempo"(
 --Sector de funciones que agregan tuplasa cada tabla.
 
 
-CREATE TABLE "Categoria"(
-    cod_categoria integer,
-    cod_subcategoria integer NOT NULL,
-    descripcion varchar(100),
-    CONSTRAINT "pk_cod_categoria" PRIMARY KEY ("cod_categoria"),
-    CONSTRAINT "fk_cod_subcategoria" FOREIGN KEY ("cod_subcategoria") REFERENCES "Categoria"
-);
 --Funcion que agrega tuplas a la tabla Categoria.
 CREATE OR REPLACE FUNCTION "crear_Categoria"(cantidad integer) RETURNS TEXT AS
 $$
@@ -117,14 +110,16 @@ INSERT INTO "Categoria" VALUES(1,1,'Primer Descripcion');
 --Utilizo la funcion que crea tuplas en la tabla Categoria.
 SELECT("crear_Categoria"(5));
 ----------------
-
+--Funcion que agrega tuplas a la tabla "Tipo_Cliente"
 CREATE OR REPLACE FUNCTION "crear_Tipo_Cliente"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
 i integer;
+
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
+		
 	END LOOP;
 	RETURN 'OK';
 END
