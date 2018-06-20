@@ -175,18 +175,43 @@ INSERT INTO "Clientes" VALUES(1,'Carlos Sanchez',3,'Ramon y Cajal 2550');
 SELECT("crear_Clientes"(4));
 ------------------
 
+
+
+
+
+--CREATE TABLE "Producto"(
+--    "cod_Producto" integer NOT NULL,
+--    "Nombre" varchar(50),
+--    cod_categoria integer NOT NULL, --Quizas DOMAIN
+--    cod_subcategoria integer NOT NULL,
+--    precio_actual float,
 CREATE OR REPLACE FUNCTION "crear_Producto"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
 i integer;
+cod_producto integer;
+nombre_producto varchar(50);
+cod_cat_producto integer;
+cod_subcat_producto integer;
+precio_actual_producto float;
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
+		cod_producto = (SELECT MAX("cod_Producto") FROM "Producto")+1;
+		nombre_producto = ('NOMBRE DE PRODUCTO ' || cod_producto);
+		cod_cat_producto = (SELECT CEIL(random()*(SELECT MAX(cod_categoria)FROM "Categoria")));
+		cod_subcat_producto = (SELECT CEIL(random()*(SELECT MAX(cod_categoria)FROM "Categoria")));
+		precio_actual_producto = (SELECT random()*1000 +100);
+		INSERT INTO "Producto" VALUES(cod_producto, nombre_producto, cod_cat_producto, cod_subcat_producto, precio_actual_producto);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
+--Inserto una primer tupla en producto
+INSERT INTO "Producto" VALUES (1,'DULCE DE MEMBRILLO',1,1,120.723479472101);
+--Utilizo la funcion de cracion de tuplas en la tabla Producto.
+SELECT("crear_Producto"(10));
 ---------------
 
 CREATE OR REPLACE FUNCTION "crear_Venta"(cantidad integer) RETURNS TEXT AS
