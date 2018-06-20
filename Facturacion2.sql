@@ -110,35 +110,78 @@ INSERT INTO "Categoria" VALUES(1,1,'Primer Descripcion');
 --Utilizo la funcion que crea tuplas en la tabla Categoria.
 SELECT("crear_Categoria"(5));
 ----------------
---Funcion que agrega tuplas a la tabla "Tipo_Cliente"
-CREATE OR REPLACE FUNCTION "crear_Tipo_Cliente"(cantidad integer) RETURNS TEXT AS
-$$
-DECLARE
-i integer;
 
-BEGIN
-	i =1;
-	FOR i IN i..cantidad LOOP
-		
-	END LOOP;
-	RETURN 'OK';
-END
-$$
-LANGUAGE plpgsql;
+
+--COMENTADA PORQUE HACE MAL LA PARTE DE "cod_t_tipo_cliente = (SELECT CEIL(random()*4));"
+
+
+--Funcion que agrega tuplas a la tabla "Tipo_Cliente"
+--CREATE OR REPLACE FUNCTION "crear_Tipo_Cliente"(cantidad integer) RETURNS TEXT AS
+--$$
+--DECLARE
+--i integer;
+--cod_t_tipo_cliente integer;
+--descripcion_tipo_cliente varchar(100);
+--BEGIN
+--	i =1;
+--	FOR i IN i..cantidad LOOP
+--		cod_t_tipo_cliente = (SELECT CEIL(random()*4));
+--		descripcion_tipo_cliente = ('DESCRIPCIÓN DEL TIPO' || cod_t_tipo_cliente); 
+--		INSERT INTO "Tipo_Cliente" VALUES (cod_t_tipo_cliente,descripcion_tipo_cliente);
+--	END LOOP;
+--	RETURN 'OK';
+--END
+--$$
+--LANGUAGE plpgsql;
+
+--SELECT("crear_Tipo_Cliente"(1));
 ------------------
+
+
+--CREATE TABLE "Clientes"(
+--    "cod_Cliente" varchar(8) NOT NULL,
+--    "Nombre" varchar(50) NOT NULL,
+--    cod_tipo t_cod_tipo,
+--    direccion varchar(50),
+--    CONSTRAINT "pk_Cliente" PRIMARY KEY ("cod_Cliente"),
+--    CONSTRAINT "fk_Tipo_Cliente" FOREIGN KEY (cod_tipo) REFERENCES "Tipo_Cliente"
 
 CREATE OR REPLACE FUNCTION "crear_Clientes"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
 i integer;
+j integer;
+cod_cliente varchar(8);
+nombre_cliente varchar(50);
+cod_tipo_cliente t_cod_tipo;
+direccion_cliente varchar(50);
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
+		cod_cliente = (SELECT CEIL(random()*99999999));--varchar? capas conviene integer.
+		nombre_cliente = ('NOMBRE ' || cod_cliente);
+		j = (SELECT CEIL(random()*4));
+		cod_tipo_cliente = (SELECT CEIL(random()*4));
+		CASE j
+			WHEN 1 THEN
+			direccion_cliente = 'ALMIRANTE BROWM 2500 ' || cod_cliente ;
+			WHEN 2 THEN
+			direccion_cliente = 'PERITO MORENO 350' || cod_cliente ;
+			WHEN 3 THEN
+			direccion_cliente = '25 DE MAYO Y AP BELL' || cod_cliente ;
+			ELSE
+			direccion_cliente = 'MOSCU 245' || cod_cliente ;
+		END CASE;
+		INSERT INTO "Clientes" VALUES (cod_cliente, nombre_cliente, cod_tipo_cliente, direccion_cliente);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
+
+INSERT INTO "Clientes" VALUES(1,'Carlos Sanchez',3,'Ramon y Cajal 2550');
+
+SELECT("crear_Clientes"(4));
 ------------------
 
 CREATE OR REPLACE FUNCTION "crear_Producto"(cantidad integer) RETURNS TEXT AS
