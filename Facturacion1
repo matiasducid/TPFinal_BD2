@@ -156,10 +156,73 @@ LANGUAGE plpgsql;
 INSERT INTO "Producto" VALUES(1,'Primer Producto',1,250);
 --Utilizo la Funcion para crear mas tupas de productos.
 SELECT("agregar_Productos"(9));
--- assd
 
---comentario.
---asdasdas
+--Funcion que agrega tuplas a la tabla Detalle_Vta
+CREATE OR REPLACE FUNCTION "crear_Detalle_Vta"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+nro_factura_detalle_vta integer;
+nro_producto_detalle_vta integer;
+descripcion_detalle_vta varchar(100);
+cantidad_detalle_vta integer;
+precio_detalle_vta float;
 
---aaaaaaaaaa
---aaa
+BEGIN
+	i=1;
+	FOR i IN i..cantidad LOOP
+		nro_factura_detalle_vta = (SELECT MAX(nro_factura)FROM "Detalle_Vta") +1;
+		nro_producto_detalle_vta = (SELECT CEIL(random()*(SELECT MAX("nro_Producto") FROM "Producto")));
+		descripcion_detalle_vta = ('DESCRIPCIÓN ' || nro_factura_detalle_vta);
+		cantidad_detalle_vta = (SELECT CEIL(random()*1000));
+		precio_detalle_vta = (SELECT (random()*1000));
+		INSERT INTO "Detalle_Vta" VALUES (nro_factura_detalle_vta,nro_producto_detalle_vta,descripcion_detalle_vta,cantidad_detalle_vta,precio_detalle_vta);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Agrego una primer tupla a Detalle_Vta
+INSERT INTO "Detalle_Vta" VALUES (1,1,'DESCRIPCION 1',3,508.593718986958);
+--Utilizo la funcion que agrega tuplas a la tabla Detalle_Vta
+SELECT("crear_Detalle_Vta"(9)) ;
+
+--Funcion que agrega tuplas a la tabla "Venta".
+CREATE OR REPLACE FUNCTION "crear_Venta"(cantidad integer)RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+j integer;
+nro_factura_venta integer;
+fecha_venta date;
+nro_cliente_venta integer;
+nombre_venta varchar(50);
+forma_pago_venta t_forma_pago;
+BEGIN
+	i = 1;
+	FOR i IN i..cantidad LOOP
+		nro_factura_venta = (SELECT MAX("nro_Factura") FROM "Venta") +1;
+		fecha_venta = (SELECT(SELECT now() - '5 years'::interval * random() as date ) );
+		nro_cliente_venta = ( SELECT CEIL(random()*(SELECT MAX("nro_Cliente") FROM "Clientes")) );
+		nombre_venta = ('Venta ' || nro_factura_venta);
+		j = (SELECT CEIL(random()*4));
+		CASE j
+			WHEN 1 THEN 
+				forma_pago_venta := 'EFECTIVO';
+			WHEN 2 THEN
+				forma_pago_venta := 'DEBITO';
+			WHEN 3 THEN 
+				forma_pago_venta := 'CREDITO';
+			ELSE 
+				forma_pago_venta := 'CHEQUE';
+		END CASE;		
+		INSERT INTO "Venta" VALUES(nro_factura_venta,fecha_venta,nro_cliente_venta,nombre_venta,forma_pago_venta);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Inserto la primer tupla de "Venta"
+INSERT INTO "Venta" VALUES (1,(SELECT now()),1,'Primer Venta','DEBITO');
+--Utilizo funcion para agregar tuplas a Venta.
+SELECT("crear_Venta"(9)) ;
