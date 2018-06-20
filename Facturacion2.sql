@@ -137,15 +137,6 @@ SELECT("crear_Categoria"(5));
 --SELECT("crear_Tipo_Cliente"(1));
 ------------------
 
-
---CREATE TABLE "Clientes"(
---    "cod_Cliente" varchar(8) NOT NULL,
---    "Nombre" varchar(50) NOT NULL,
---    cod_tipo t_cod_tipo,
---    direccion varchar(50),
---    CONSTRAINT "pk_Cliente" PRIMARY KEY ("cod_Cliente"),
---    CONSTRAINT "fk_Tipo_Cliente" FOREIGN KEY (cod_tipo) REFERENCES "Tipo_Cliente"
-
 CREATE OR REPLACE FUNCTION "crear_Clientes"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
