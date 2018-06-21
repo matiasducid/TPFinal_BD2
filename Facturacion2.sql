@@ -58,7 +58,7 @@ CREATE TABLE "Detalle_Venta"(
     "Id_Factura" integer NOT NULL,
     cod_producto integer NOT NULL,
     descripcion varchar(100),
-    unidad integer NOT NULL,
+    unidad integer NOT NULL,--Deberia ser cantidad
     precio float NOT NULL,
     CONSTRAINT "fk_Id_Factura" FOREIGN KEY ("Id_Factura") REFERENCES "Venta",
     CONSTRAINT "fk_cod_producto" FOREIGN KEY ("cod_producto") REFERENCES "Producto"
@@ -136,7 +136,6 @@ SELECT("crear_Categoria"(5));
 
 --SELECT("crear_Tipo_Cliente"(1));
 ------------------
-
 CREATE OR REPLACE FUNCTION "crear_Clientes"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
@@ -174,17 +173,6 @@ INSERT INTO "Clientes" VALUES(1,'Carlos Sanchez',3,'Ramon y Cajal 2550');
 
 SELECT("crear_Clientes"(4));
 ------------------
-
-
-
-
-
---CREATE TABLE "Producto"(
---    "cod_Producto" integer NOT NULL,
---    "Nombre" varchar(50),
---    cod_categoria integer NOT NULL, --Quizas DOMAIN
---    cod_subcategoria integer NOT NULL,
---    precio_actual float,
 CREATE OR REPLACE FUNCTION "crear_Producto"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
@@ -213,33 +201,64 @@ INSERT INTO "Producto" VALUES (1,'DULCE DE MEMBRILLO',1,1,120.723479472101);
 --Utilizo la funcion de cracion de tuplas en la tabla Producto.
 SELECT("crear_Producto"(10));
 ---------------
-
 CREATE OR REPLACE FUNCTION "crear_Venta"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
 i integer;
+j integer;
+fecha_venta date;
+id_factura_venta integer;
+cod_cliente_venta varchar(8);
+nombre_venta varchar(50);
+cod_medio_pago_venta integer;
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
+	--cast( now() - '60 year'::interval * random()  as date )
+		fecha_venta = (SELECT cast( now() - '5 year'::interval * random()  as date ));
+		id_factura_venta = (SELECT MAX("Id_Factura")FROM "Venta")+1;
+		cod_cliente_venta = (SELECT "cod_Cliente" FROM "Clientes" ORDER BY RANDOM() LIMIT 1);
+		nombre_venta = ('NOMBRE DE VENTA ' || id_factura_venta);
+		cod_medio_pago_venta = (SELECT CEIL (random()*4)); --No seria menjor tener como cod_medio_pago_venta 'EFECTIVO' 'DEBITO' ... ??
+		INSERT INTO "Venta" VALUES(fecha_venta, id_factura_venta, cod_cliente_venta, nombre_venta, cod_medio_pago_venta);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
+--Inserto una primer tupla en Venta.
+INSERT INTO "Venta" VALUES((SELECT current_date),1,1,'Primer Venta',1);
+--Utilizo la funcion para agregar tuplas a Venta.
+SELECT("crear_Venta"(10));
 ---------------
 
 CREATE OR REPLACE FUNCTION "crear_Detalle_Venta"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
 i integer;
+id_factura_detalle_venta integer;
+cod_producto_detalle_venta integer;
+descripcion_detalle_venta varchar(100);
+unidad_detalle_venta integer;
+precio_detalle_venta float;
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
+		id_factura_detalle_venta = (SELECT "Id_Factura" FROM "Venta" ORDER BY RANDOM() LIMIT 1);
+		cod_producto_detalle_venta = (SELECT "cod_Producto" FROM "Producto" ORDER BY RANDOM() LIMIT 1);
+		descripcion_detalle_venta = ('En la venta ' || id_factura_detalle_venta || ' Se vendió el producto ' || cod_producto_detalle_venta) ;
+		unidad_detalle_venta = (SELECT CEIL(random()*10)) ;
+		precio_detalle_venta = (SELECT precio_actual FROM "Producto" WHERE "cod_Producto" = cod_producto_detalle_venta) * unidad_detalle_venta ;
+		INSERT INTO "Detalle_Venta" VALUES(id_factura_detalle_venta, cod_producto_detalle_venta, descripcion_detalle_venta, unidad_detalle_venta, precio_detalle_venta);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
+--No hace falta insertar una primer tupla en este caso.
+--Utilizo la funcion para crear multiples detalles.
+SELECT("crear_Detalle_Venta"(10));
+
 ------------------
 
 CREATE OR REPLACE FUNCTION "crear_Medio_Pago"(cantidad integer) RETURNS TEXT AS
