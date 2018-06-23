@@ -260,30 +260,95 @@ LANGUAGE plpgsql;
 SELECT("crear_Detalle_Venta"(10));
 
 ------------------
-
 CREATE OR REPLACE FUNCTION "crear_Medio_Pago"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
 i integer;
+j integer;
+codigo_medio_pago varchar(15);--t_forma_pago puse anteriormente y no funcionaba
+descripcion_medio_pago varchar (100);
+valor_medio_pago float;
+cantidad_medio_pago integer;
+tipo_operacion_medio_pago integer; 	
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
+		j = (SELECT CEIL(random()* 4));
+		CASE j
+			WHEN 1 THEN
+				codigo_medio_pago = 'EFECTIVO' ;
+			WHEN 2 THEN
+				codigo_medio_pago = 'DEBITO' ;
+			WHEN 3 THEN
+				codigo_medio_pago = 'CREDITO' ;
+			ELSE
+				codigo_medio_pago = 'CHEQUE' ;
+		END CASE;
+		descripcion_medio_pago = ('Descripcion del medio ' || codigo_medio_pago);
+		valor_medio_pago = (SELECT random()*500);
+		cantidad_medio_pago = (SELECT CEIL (random()*12));
+		tipo_operacion_medio_pago = (SELECT CEIL(random()*3));
+		INSERT INTO "Medio_Pago" VALUES (codigo_medio_pago, descripcion_medio_pago, valor_medio_pago, cantidad_medio_pago, tipo_operacion_medio_pago);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
+--Inicializo la tabla "Medio_Pago"
+INSERT INTO "Medio_Pago" VALUES ('EFECTIVO','El primer pago',424.240255262703,5,1);
+--Utilizo la funcion para crear tuplas en la tabla "Medio_Pago" 
+SELECT("crear_Medio_Pago"(1));
+--TIENE MEDIO DE PAGO COMO PRIMARY KEY, POR LO TANTO SOLO PODEMOS PONER 4 TUPLAS, DEBERIAMOS HACER UNA CLAVE COMPUESTA.
 --------------------
 
+
+
+
+
+
+--CREATE TABLE "Tiempo"(
+--    "Id_fecha" integer,--timestamp, date ?
+--    dia integer CHECK (dia between 1 AND 31),
+--    mes integer CHECK (mes between 1 AND 12),
+--    trimestre integer CHECK (trimestre between 1 AND 4), --Creo
+--    año integer CHECK (año between 2000 and date_part('year',now())),
+--    CONSTRAINT "pk_Id_Fecha" PRIMARY KEY ("Id_fecha")
+--);
 CREATE OR REPLACE FUNCTION "crear_Tiempo"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
 i integer;
+id_fecha_tiempo integer;
+fecha_aux date;
+dia_tiempo integer;
+mes_tiempo integer;
+trimestre_tiempo integer;
+año_tiempo integer;
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
+		id_fecha_tiempo = (SELECT MAX("Id_fecha")FROM "Tiempo") + 1 ;
+		fecha_aux = (SELECT now() - '5 year'::interval * random() as date);
+		dia_tiempo = (SELECT EXTRACT(DAY FROM fecha_aux));
+		mes_tiempo = (SELECT EXTRACT (MONTH FROM fecha_aux));
+		CASE mes_tiempo
+			WHEN 1,2,3 THEN
+				trimestre_tiempo = 1 ;
+			WHEN 4,5,6 THEN 
+				trimestre_tiempo = 2 ;
+			WHEN 7,8,9 THEN 
+				trimestre_tiempo = 3 ;
+			ELSE
+				trimestre_tiempo = 4 ;
+		END CASE;
+		año_tiempo = (SELECT EXTRACT(YEAR FROM fecha_aux));
+		INSERT INTO "Tiempo" VALUES (id_fecha_tiempo,dia_tiempo,mes_tiempo,trimestre_tiempo,año_tiempo);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
+--Inicializo la primer tupla.
+INSERT INTO "Tiempo" VALUES(1,(SELECT EXTRACT(DAY FROM current_date)),(SELECT EXTRACT(MONTH FROM current_date)),(SELECT((SELECT EXTRACT(MONTH FROM current_date)))/4),(SELECT EXTRACT(YEAR FROM current_date)));
+--Utilizo la funcion creada para crear una tupla en la tabla Tiempo.
+SELECT("crear_Tiempo"(10));
