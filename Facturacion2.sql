@@ -16,11 +16,8 @@ CREATE TABLE "Categoria"(
     CONSTRAINT "pk_cod_categoria" PRIMARY KEY ("cod_categoria"),
     CONSTRAINT "fk_cod_subcategoria" FOREIGN KEY ("cod_subcategoria") REFERENCES "Categoria"
 );
-CREATE DOMAIN t_cod_tipo AS integer
-    DEFAULT 1 
-    CHECK (VALUE IN (1,2,3,4));--son cuatro tipos en facturacion1
 CREATE TABLE "Tipo_Cliente" (
-    cod_tipo t_cod_tipo NOT NULL,
+    cod_tipo integer NOT NULL,
     descripcion varchar(100),
     CONSTRAINT "pk_Tipo_Cliente" PRIMARY KEY (cod_tipo)
 );
@@ -112,29 +109,27 @@ SELECT("crear_Categoria"(5));
 ----------------
 
 
---COMENTADA PORQUE HACE MAL LA PARTE DE "cod_t_tipo_cliente = (SELECT CEIL(random()*4));"
+CREATE OR REPLACE FUNCTION "crear_Tipo_Cliente"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+cod_t_tipo_cliente integer;
+descripcion_tipo_cliente varchar(100);
+BEGIN
+	i =1;
+	FOR i IN i..cantidad LOOP
+		cod_t_tipo_cliente = (SELECT MAX(cod_tipo)FROM "Tipo_Cliente")+1;
+		descripcion_tipo_cliente = ('TIPO DE CLIENTE ' || cod_t_tipo_cliente); 
+		INSERT INTO "Tipo_Cliente" VALUES (cod_t_tipo_cliente,descripcion_tipo_cliente);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+
+SELECT("crear_Tipo_Cliente"(5));
 
 
---Funcion que agrega tuplas a la tabla "Tipo_Cliente"
---CREATE OR REPLACE FUNCTION "crear_Tipo_Cliente"(cantidad integer) RETURNS TEXT AS
---$$
---DECLARE
---i integer;
---cod_t_tipo_cliente integer;
---descripcion_tipo_cliente varchar(100);
---BEGIN
---	i =1;
---	FOR i IN i..cantidad LOOP
---		cod_t_tipo_cliente = (SELECT CEIL(random()*4));
---		descripcion_tipo_cliente = ('DESCRIPCIÓN DEL TIPO' || cod_t_tipo_cliente); 
---		INSERT INTO "Tipo_Cliente" VALUES (cod_t_tipo_cliente,descripcion_tipo_cliente);
---	END LOOP;
---	RETURN 'OK';
---END
---$$
---LANGUAGE plpgsql;
-
---SELECT("crear_Tipo_Cliente"(1));
 ------------------
 CREATE OR REPLACE FUNCTION "crear_Clientes"(cantidad integer) RETURNS TEXT AS
 $$
@@ -298,22 +293,20 @@ LANGUAGE plpgsql;
 INSERT INTO "Medio_Pago" VALUES ('EFECTIVO','El primer pago',424.240255262703,5,1);
 --Utilizo la funcion para crear tuplas en la tabla "Medio_Pago" 
 SELECT("crear_Medio_Pago"(1));
---TIENE MEDIO DE PAGO COMO PRIMARY KEY, POR LO TANTO SOLO PODEMOS PONER 4 TUPLAS, DEBERIAMOS HACER UNA CLAVE COMPUESTA.
+--
+--
+--
+-- ¿ Porque tiene valor y cantidad ?
+--
+--
+--
+--
+
+
+
 --------------------
 
 
-
-
-
-
---CREATE TABLE "Tiempo"(
---    "Id_fecha" integer,--timestamp, date ?
---    dia integer CHECK (dia between 1 AND 31),
---    mes integer CHECK (mes between 1 AND 12),
---    trimestre integer CHECK (trimestre between 1 AND 4), --Creo
---    año integer CHECK (año between 2000 and date_part('year',now())),
---    CONSTRAINT "pk_Id_Fecha" PRIMARY KEY ("Id_fecha")
---);
 CREATE OR REPLACE FUNCTION "crear_Tiempo"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
