@@ -40,7 +40,7 @@ CREATE TABLE "Producto"(
     --CONSTRAINT "fk_cod_subcategoria" FOREIGN KEY (cod_subcategoria)
 );
 CREATE TABLE "Venta"(
-    "Fecha_Vta" date NOT NULL, 
+    "Fecha_Vta" integer NOT NULL, 
     "Id_Factura" integer NOT NULL,
     "cod_Cliente" varchar(8) NOT NULL,
     "Nombre" varchar(50),
@@ -48,6 +48,7 @@ CREATE TABLE "Venta"(
     CONSTRAINT "pk_Id_Factura" PRIMARY KEY ("Id_Factura"),
     CONSTRAINT "fk_cod_Cliente" FOREIGN KEY ("cod_Cliente") REFERENCES "Clientes"
 );
+ALTER TABLE "Venta" ADD CONSTRAINT "fk_fecha" FOREIGN KEY ("Fecha_Vta") REFERENCES "Tiempo" ("Id_fecha")
 CREATE DOMAIN t_forma_pago varchar(15)
     DEFAULT 'EFECTIVO'
     CHECK (VALUE IN('EFECTIVO','DEBITO','CREDITO','CHEQUE'));
@@ -201,7 +202,7 @@ $$
 DECLARE
 i integer;
 j integer;
-fecha_venta date;
+fecha_venta integer;
 id_factura_venta integer;
 cod_cliente_venta varchar(8);
 nombre_venta varchar(50);
@@ -209,8 +210,7 @@ cod_medio_pago_venta integer;
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
-	--cast( now() - '60 year'::interval * random()  as date )
-		fecha_venta = (SELECT cast( now() - '5 year'::interval * random()  as date ));
+		fecha_venta = (SELECT "Id_fecha" FROM "Tiempo" ORDER BY RANDOM() LIMIT 1);
 		id_factura_venta = (SELECT MAX("Id_Factura")FROM "Venta")+1;
 		cod_cliente_venta = (SELECT "cod_Cliente" FROM "Clientes" ORDER BY RANDOM() LIMIT 1);
 		nombre_venta = ('NOMBRE DE VENTA ' || id_factura_venta);
@@ -222,9 +222,9 @@ END
 $$
 LANGUAGE plpgsql;
 --Inserto una primer tupla en Venta.
-INSERT INTO "Venta" VALUES((SELECT current_date),1,1,'Primer Venta',1);
+INSERT INTO "Venta" VALUES(1,1,1,'Primer Venta',1);
 --Utilizo la funcion para agregar tuplas a Venta.
-SELECT("crear_Venta"(10));
+SELECT("crear_Venta"(9));
 ---------------
 
 CREATE OR REPLACE FUNCTION "crear_Detalle_Venta"(cantidad integer) RETURNS TEXT AS

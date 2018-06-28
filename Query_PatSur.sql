@@ -40,8 +40,6 @@ CREATE TABLE "Tipo_Cliente" (
 descripcion varchar(100),
 CONSTRAINT "pk_Tipo_Cliente" PRIMARY KEY ("Id_Tipo")
 );
-
-
 --Creo la tabla Tiempo.
 CREATE TABLE "Tiempo" (
 	"Id_Tiempo" integer,
@@ -81,13 +79,31 @@ CREATE TABLE "Ciudad"(
 	CONSTRAINT "fk_Provincia" FOREIGN KEY ("Id_Provincia") REFERENCES "Provincia"
  );
 --Creo la tabla Distribucion Geografica.
-CREATE TABLE "Distriucion_Geografica"(
+CREATE TABLE "Distribucion_Geografica"(
 	"Id_Sucursal" integer,
 	descripcion varchar (100),
 	"Id_Ciudad" integer,
 	CONSTRAINT "pk_DG" PRIMARY KEY ("Id_Sucursal"),
 	CONSTRAINT "fk_Ciudad" FOREIGN KEY ("Id_Ciudad") REFERENCES "Ciudad"
  );
+--Creo la tabla Ventas.
+CREATE TABLE "Ventas" (
+	"Fecha" integer,
+	"Id_Factura" integer,
+	"Id_Cliente" integer,
+	"Id_Producto" integer,
+	"Id_Sucursal" integer,
+	"Monto_vendido" float,
+	"Cantidad_Vendida" integer,
+	CONSTRAINT "pk_Venta" PRIMARY KEY ("Id_Factura"),
+	CONSTRAINT "fk_Tiempo" FOREIGN KEY ("Fecha") REFERENCES "Tiempo" ("Id_Tiempo"),
+	CONSTRAINT "fk_Cliente" FOREIGN KEY ("Id_Cliente") REFERENCES "Clientes" ("Id_Cliente"),
+	CONSTRAINT "fk_Producto" FOREIGN KEY ("Id_Producto") REFERENCES "Productos" ("Id_Producto"),
+	CONSTRAINT "fk_DG" FOREIGN KEY ("Id_Sucursal") REFERENCES "Distribucion_Geografica" ("Id_Sucursal")
+	)
+
+
+ 
 --Inserto a la tabla Productos Local los elementos de producto pertenecientes a las 2 tablas 
 --remotas de productos(Productos ->Facturacion1 // Productos ->Facturacion2).
 
@@ -153,8 +169,7 @@ BEGIN
 END
 $$
 LANGUAGE plpgsql;
-
-
+--Función de carga para la tabla local Clientes utilizando los datos de clientes en facturacion1 y facturacion2.
 CREATE OR REPLACE FUNCTION "cargar_Clientes"() RETURNS TEXT AS
 $$
 DECLARE
@@ -210,11 +225,102 @@ INSERT INTO "Tiempo" (SELECT idTf2,diaf2,mesf2,trimestref2,añof2
 INSERT INTO "Medios" (SELECT codf2, descf2 FROM dblink('conexionFacturacion2a',
 				 'SELECT "cod_Medio_Pago",descripcion FROM "Medio_Pago"') 
 				 AS (codf2 t_forma_pago, descf2 varchar(100)));
+---------------------------------------
 
+CREATE OR REPLACE FUNCTION "crear_Region"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+id_region integer;
+descripcion_region varchar(100);
+BEGIN
+	i = 1;
+	FOR i IN i..cantidad LOOP
+		id_region = (SELECT MAX("Id_Region")FROM "Region")+1;
+		descripcion_region = ('REGION NUMERO ' || id_region);
+		INSERT INTO "Region" VALUES(id_region,descripcion_region);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Inserto una primer tupla en la tabla Region.
+INSERT INTO "Region" VALUES (1,'REGION NUMERO 1');
+--Utilizo la funcion que inicializa tuplas en la tabla "Region".
+SELECT "crear_Region"(9);
+--Función que crea tuplas en la tabla "Provincia".
+CREATE OR REPLACE FUNCTION "crear_Provincia"(cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+id_provincia integer;
+descripcion_provincia varchar(100);
+id_region_provincia integer;
+BEGIN
+	i = 1;
+	FOR i IN i..cantidad LOOP
+		id_provincia = (SELECT MAX("Id_Provincia")FROM "Provincia")+1;
+		descripcion_provincia = ('PROVINCIA NUMERO '|| id_provincia);
+		id_region_provincia = (SELECT "Id_Region" FROM "Region" ORDER BY RANDOM() LIMIT 1);
+		INSERT INTO "Provincia" VALUES(id_provincia, descripcion_provincia, id_region_provincia);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Inserto una primer tupla en la tabla "Region".
+INSERT INTO "Provincia" VALUES(1,'PROVINCIA NUMERO 1',1);
+--Utilizo la función para crear tuplas en la tabla "Provincia".
+SELECT "crear_Provincia"(9);
+--Funcion que crea tuplas en la tabla "Ciudad".
+CREATE OR REPLACE FUNCTION "crear_Ciudad" (cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+id_ciudad integer;
+descripcion_ciudad varchar(100);
+id_provincia_ciudad integer;
+BEGIN
+	i=1;
+	FOR i IN i..cantidad LOOP
+		id_ciudad = (SELECT MAX("Id_Ciudad")FROM "Ciudad")+1;
+		descripcion_ciudad = ('CIUDAD NUMERO '|| id_ciudad);
+		id_provincia_ciudad = (SELECT "Id_Provincia" FROM "Provincia" ORDER BY RANDOM() LIMIT 1);
+		INSERT INTO "Ciudad" VALUES(id_ciudad, descripcion_ciudad, id_provincia_ciudad);
+	END LOOP;
 
-
-
-
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Inserto una primer tupla en la tabla "Ciudad"
+INSERT INTO "Ciudad" VALUES (1,'CIUDAD NUMERO 1',1);
+--Utilizo la función para crear tuplas de ciudad
+SELECT "crear_Ciudad"(9);
+--Funcion que crea tuplas en la tabla "Distrbucion_Geografica".
+CREATE OR REPLACE FUNCTION "crear_DG" (cantidad integer) RETURNS TEXT AS
+$$
+DECLARE
+i integer;
+id_sucursal_DG integer;
+descripcion_DG varchar(100);
+id_ciudad_DG integer;
+BEGIN
+	i = 1;
+	FOR i IN i..cantidad LOOP
+		id_sucursal_DG = (SELECT MAX("Id_Sucursal") FROM "Distribucion_Geografica")+1;
+		descripcion_DG = ('DISTRIBUCION GEOGRAFICA NUMERO ' || id_sucursal_DG);
+		id_ciudad_DG = (SELECT "Id_Ciudad" FROM "Ciudad" ORDER BY RANDOM() LIMIT 1);
+		INSERT INTO "Distribucion_Geografica" VALUES (id_sucursal_DG, descripcion_DG, id_ciudad_DG);
+	END LOOP;
+	RETURN 'OK';
+END
+$$
+LANGUAGE plpgsql;
+--Inserto una primer tupla en la tabla "Distribucion_Geografica".
+INSERT INTO "Distribucion_Geografica" VALUES (1,'DISTRIBUCION GEOGRAFICA NUMERO 1',1);
+--Utilizo la funcion para agregar tuplas a la tabla "Distribucion_Geografica".
+SELECT "crear_DG"(9);
 
 
 
