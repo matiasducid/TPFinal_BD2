@@ -95,15 +95,15 @@ CREATE TABLE "Ventas" (
 	"Id_Sucursal" integer,
 	"Monto_vendido" float,
 	"Cantidad_Vendida" integer,
+	"Id_Medio_Pago" t_forma_pago,
 	CONSTRAINT "pk_Venta" PRIMARY KEY ("Id_Factura"),
 	CONSTRAINT "fk_Tiempo" FOREIGN KEY ("Fecha") REFERENCES "Tiempo" ("Id_Tiempo"),
 	CONSTRAINT "fk_Cliente" FOREIGN KEY ("Id_Cliente") REFERENCES "Clientes" ("Id_Cliente"),
 	CONSTRAINT "fk_Producto" FOREIGN KEY ("Id_Producto") REFERENCES "Productos" ("Id_Producto"),
-	CONSTRAINT "fk_DG" FOREIGN KEY ("Id_Sucursal") REFERENCES "Distribucion_Geografica" ("Id_Sucursal")
-	)
-
-
- 
+	CONSTRAINT "fk_DG" FOREIGN KEY ("Id_Sucursal") REFERENCES "Distribucion_Geografica" ("Id_Sucursal"),
+	CONSTRAINT "fk_Medios" FOREIGN KEY ("Id_Medio_Pago") REFERENCES "Medios" ("Id_Medio_Pago")
+	);
+	
 --Inserto a la tabla Productos Local los elementos de producto pertenecientes a las 2 tablas 
 --remotas de productos(Productos ->Facturacion1 // Productos ->Facturacion2).
 
