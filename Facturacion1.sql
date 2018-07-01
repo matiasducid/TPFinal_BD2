@@ -47,14 +47,7 @@ CREATE TABLE "Producto" (
 	CONSTRAINT "pk_Producto" PRIMARY KEY ("nro_Producto"),
 	CONSTRAINT fk_nro_categ FOREIGN KEY (nro_categ) REFERENCES public."Categoria" (nro_categ)
 );
---Agregué en create table "producto" la foreign key que representa este alter table.
---ALTER TABLE "Detalle_Vta" 
---	ADD CONSTRAINT fk_nro_producto FOREIGN KEY ("nro_Producto") 
---	REFERENCES public."Producto" ("nro_Producto") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE;
-
-
-
--- ___________________________________________________________________________________________________________________________________
+--___________________________________________________________________________________________________________________________________
 
 
 	

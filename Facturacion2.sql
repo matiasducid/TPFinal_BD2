@@ -40,15 +40,17 @@ CREATE TABLE "Producto"(
     --CONSTRAINT "fk_cod_subcategoria" FOREIGN KEY (cod_subcategoria)
 );
 CREATE TABLE "Venta"(
-    "Fecha_Vta" integer NOT NULL, 
+    "Fecha_Vta" date,
+    "Id_Tiempo" integer,
     "Id_Factura" integer NOT NULL,
     "cod_Cliente" varchar(8) NOT NULL,
     "Nombre" varchar(50),
     cod_medio_pago integer,
     CONSTRAINT "pk_Id_Factura" PRIMARY KEY ("Id_Factura"),
-    CONSTRAINT "fk_cod_Cliente" FOREIGN KEY ("cod_Cliente") REFERENCES "Clientes"
+    CONSTRAINT "fk_cod_Cliente" FOREIGN KEY ("cod_Cliente") REFERENCES "Clientes" ("cod_Cliente"),
+    CONSTRAINT "fk_Medio_Pago" FOREIGN KEY (cod_medio_pago) REFERENCES "Medio_Pago" ("cod_Medio_Pago"),
+    CONSTRAINT "fk_Tiempo1" FOREIGN KEY ("Id_Tiempo","Fecha_Vta") REFERENCES "Tiempo" ("Id_fecha",fecha)
 );
-ALTER TABLE "Venta" ADD CONSTRAINT "fk_fecha" FOREIGN KEY ("Fecha_Vta") REFERENCES "Tiempo" ("Id_fecha")
 CREATE DOMAIN t_forma_pago varchar(15)
     DEFAULT 'EFECTIVO'
     CHECK (VALUE IN('EFECTIVO','DEBITO','CREDITO','CHEQUE'));
@@ -62,22 +64,22 @@ CREATE TABLE "Detalle_Venta"(
     CONSTRAINT "fk_cod_producto" FOREIGN KEY ("cod_producto") REFERENCES "Producto"
 );
 CREATE TABLE "Medio_Pago"(
-    "cod_Medio_Pago" t_forma_pago,
+    "cod_Medio_Pago" serial,
     descripcion varchar(50),
     valor float,
     cantidad integer, --unidad en PDF
-    tipo_operacion integer, --varchar(50) o definir un tipo?
+    tipo_operacion t_forma_pago, --varchar(50) o definir un tipo?
     CONSTRAINT "pk_Medio_Pago" PRIMARY KEY ("cod_Medio_Pago")
 );
 CREATE TABLE "Tiempo"(
-    "Id_fecha" integer,--timestamp, date ?
+    "Id_fecha" integer,
+    fecha date,
     dia integer CHECK (dia between 1 AND 31),
     mes integer CHECK (mes between 1 AND 12),
     trimestre integer CHECK (trimestre between 1 AND 4),
     año integer CHECK (año between 2000 and date_part('year',now())),
-    CONSTRAINT "pk_Id_Fecha" PRIMARY KEY ("Id_fecha")
+    CONSTRAINT "pk_Id_Fecha" PRIMARY KEY ("Id_fecha",fecha)
 );
-
 
 ------------------------------------------------------------------------------------------------------------
 --Sector de funciones que agregan tuplasa cada tabla.
@@ -202,31 +204,61 @@ $$
 DECLARE
 i integer;
 j integer;
-fecha_venta integer;
+fecha_venta date;
+id_tiempo_venta integer;
 id_factura_venta integer;
 cod_cliente_venta varchar(8);
 nombre_venta varchar(50);
 cod_medio_pago_venta integer;
+
+dia_tiempo integer;
+mes_tiempo integer;
+trimestre_tiempo integer;
+año_tiempo integer;
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
-		fecha_venta = (SELECT "Id_fecha" FROM "Tiempo" ORDER BY RANDOM() LIMIT 1);
-		id_factura_venta = (SELECT MAX("Id_Factura")FROM "Venta")+1;
-		cod_cliente_venta = (SELECT "cod_Cliente" FROM "Clientes" ORDER BY RANDOM() LIMIT 1);
-		nombre_venta = ('NOMBRE DE VENTA ' || id_factura_venta);
-		cod_medio_pago_venta = (SELECT CEIL (random()*4)); --No seria menjor tener como cod_medio_pago_venta 'EFECTIVO' 'DEBITO' ... ??
-		INSERT INTO "Venta" VALUES(fecha_venta, id_factura_venta, cod_cliente_venta, nombre_venta, cod_medio_pago_venta);
+		fecha_venta = (SELECT cast(now() - '5 year'::interval * random() as date));
+		IF (SELECT fecha FROM "Tiempo" WHERE fecha=fecha_venta) IS NOT NULL THEN
+			id_tiempo_venta = (SELECT "Id_fecha" FROM "Tiempo" WHERE fecha=fecha_venta);
+			id_factura_venta = (SELECT MAX("Id_Factura")FROM "Venta")+1;
+			cod_cliente_venta = (SELECT "cod_Cliente" FROM "Clientes" ORDER BY RANDOM() LIMIT 1);
+			nombre_venta = ('NOMBRE DE VENTA ' || id_factura_venta);
+			cod_medio_pago_venta = (SELECT CEIL (random()*(SELECT MAX("cod_Medio_Pago")FROM "Medio_Pago"))); --No seria menjor tener como cod_medio_pago_venta 'EFECTIVO' 'DEBITO' ... ??
+			INSERT INTO "Venta" VALUES(fecha_venta,id_tiempo_venta, id_factura_venta, cod_cliente_venta, nombre_venta, cod_medio_pago_venta);
+		ELSE
+			dia_tiempo = (SELECT EXTRACT (DAY FROM fecha_venta));
+			mes_tiempo = (SELECT EXTRACT (MONTH FROM fecha_venta));
+			año_tiempo = (SELECT EXTRACT (YEAR FROM fecha_venta));
+			CASE mes_tiempo
+				WHEN 1,2,3 THEN
+					trimestre_tiempo = 1 ;
+				WHEN 4,5,6 THEN 
+					trimestre_tiempo = 2 ;
+				WHEN 7,8,9 THEN 
+					trimestre_tiempo = 3 ;
+				ELSE
+					trimestre_tiempo = 4 ;
+			END CASE; 
+			INSERT INTO "Tiempo" VALUES ((SELECT MAX("Id_fecha")FROM "Tiempo") + 1,
+								 fecha_venta,dia_tiempo,mes_tiempo,
+								 trimestre_tiempo,año_tiempo);
+			id_tiempo_venta = (SELECT "Id_fecha" FROM "Tiempo" WHERE fecha=fecha_venta);
+			id_factura_venta = (SELECT MAX("Id_Factura")FROM "Venta")+1;
+			cod_cliente_venta = (SELECT "cod_Cliente" FROM "Clientes" ORDER BY RANDOM() LIMIT 1);
+			nombre_venta = ('NOMBRE DE VENTA ' || id_factura_venta);
+			cod_medio_pago_venta = (SELECT CEIL (random()*(SELECT MAX("cod_Medio_Pago")FROM "Medio_Pago"))); --No seria menjor tener como cod_medio_pago_venta 'EFECTIVO' 'DEBITO' ... ??
+			INSERT INTO "Venta" VALUES(fecha_venta,id_tiempo_venta, id_factura_venta, cod_cliente_venta, nombre_venta, cod_medio_pago_venta);
+		END IF;
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
---Inserto una primer tupla en Venta.
-INSERT INTO "Venta" VALUES(1,1,1,'Primer Venta',1);
+INSERT INTO "Venta" VALUES((SELECT current_date),1,1,1,'Primer Venta',1);
 --Utilizo la funcion para agregar tuplas a Venta.
 SELECT("crear_Venta"(9));
 ---------------
-
 CREATE OR REPLACE FUNCTION "crear_Detalle_Venta"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
@@ -236,6 +268,7 @@ cod_producto_detalle_venta integer;
 descripcion_detalle_venta varchar(100);
 unidad_detalle_venta integer;
 precio_detalle_venta float;
+
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
@@ -255,6 +288,7 @@ LANGUAGE plpgsql;
 SELECT("crear_Detalle_Venta"(10));
 
 ------------------
+/*
 CREATE OR REPLACE FUNCTION "crear_Medio_Pago"(cantidad integer) RETURNS TEXT AS
 $$
 DECLARE
@@ -263,8 +297,7 @@ j integer;
 codigo_medio_pago varchar(15);--t_forma_pago puse anteriormente y no funcionaba
 descripcion_medio_pago varchar (100);
 valor_medio_pago float;
-cantidad_medio_pago integer;
-tipo_operacion_medio_pago integer; 	
+cantidad_medio_pago integer;	
 BEGIN
 	i =1;
 	FOR i IN i..cantidad LOOP
@@ -282,20 +315,25 @@ BEGIN
 		descripcion_medio_pago = ('Descripcion del medio ' || codigo_medio_pago);
 		valor_medio_pago = (SELECT random()*500);
 		cantidad_medio_pago = (SELECT CEIL (random()*12));
-		tipo_operacion_medio_pago = (SELECT CEIL(random()*3));
-		INSERT INTO "Medio_Pago" VALUES (codigo_medio_pago, descripcion_medio_pago, valor_medio_pago, cantidad_medio_pago, tipo_operacion_medio_pago);
+		INSERT INTO "Medio_Pago" VALUES (descripcion_medio_pago, valor_medio_pago, cantidad_medio_pago,codigo_medio_pago);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
+*/
 --Inicializo la tabla "Medio_Pago"
-INSERT INTO "Medio_Pago" VALUES ('EFECTIVO','El primer pago',424.240255262703,5,1);
+INSERT INTO "Medio_Pago" VALUES (1,'El primer pago',424.240255262703,3,'EFECTIVO');
+INSERT INTO "Medio_Pago" VALUES (((SELECT MAX("cod_Medio_Pago")FROM "Medio_Pago")+1),'Segundo medio de pago',701.843223259771,5,'DEBITO');
+INSERT INTO "Medio_Pago" VALUES (((SELECT MAX("cod_Medio_Pago")FROM "Medio_Pago")+1),'Tercer medio de pago',328.223224359797,8,'CREDITO');
+INSERT INTO "Medio_Pago" VALUES (((SELECT MAX("cod_Medio_Pago")FROM "Medio_Pago")+1),'Cuarto medio de pago',205.824222329759,12,'CHEQUE');
 --Utilizo la funcion para crear tuplas en la tabla "Medio_Pago" 
-SELECT("crear_Medio_Pago"(1));
---
---
---
+--SELECT("crear_Medio_Pago"(1));
+
+
+
+
+
 -- ¿ Porque tiene valor y cantidad ?
 --
 --
@@ -335,13 +373,13 @@ BEGIN
 				trimestre_tiempo = 4 ;
 		END CASE;
 		año_tiempo = (SELECT EXTRACT(YEAR FROM fecha_aux));
-		INSERT INTO "Tiempo" VALUES (id_fecha_tiempo,dia_tiempo,mes_tiempo,trimestre_tiempo,año_tiempo);
+		INSERT INTO "Tiempo" VALUES (id_fecha_tiempo,fecha_aux,dia_tiempo,mes_tiempo,trimestre_tiempo,año_tiempo);
 	END LOOP;
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
 --Inicializo la primer tupla.
-INSERT INTO "Tiempo" VALUES(1,(SELECT EXTRACT(DAY FROM current_date)),(SELECT EXTRACT(MONTH FROM current_date)),(SELECT((SELECT EXTRACT(MONTH FROM current_date)))/4),(SELECT EXTRACT(YEAR FROM current_date)));
+INSERT INTO "Tiempo" VALUES(1,(SELECT current_date),(SELECT EXTRACT(DAY FROM current_date)),(SELECT EXTRACT(MONTH FROM current_date)),(SELECT((SELECT EXTRACT(MONTH FROM current_date)))/4),(SELECT EXTRACT(YEAR FROM current_date)));
 --Utilizo la funcion creada para crear una tupla en la tabla Tiempo.
-SELECT("crear_Tiempo"(10));
+SELECT("crear_Tiempo"(9));
