@@ -31,7 +31,7 @@ CREATE TABLE "Clientes" (
 	"Nombre" varchar(50),
 	"Apellido" varchar(50),--¿No puede ir en nombre como en las otras de cliente?¿Necesario?
 	"Id_tipo" integer
-)
+);
 ALTER TABLE "Clientes" ALTER "Id_tipo" TYPE integer;
 ALTER TABLE "Clientes" ADD CONSTRAINT "pk_Cliente" PRIMARY KEY ("Id_Cliente");
 ALTER TABLE "Clientes" ADD CONSTRAINT "fk_Tipo_Cliente" FOREIGN KEY ("Id_tipo") REFERENCES "Tipo_Cliente" ("Id_Tipo");
@@ -137,19 +137,50 @@ CREATE TABLE "Eq_Ventas"(
 	forma_pago1 t_forma_pago,
 	"Fecha_Vta2" date,
 	"Id_Tiempo2" integer,
+	"id_Prod" integer,
+	cantidad integer,
+	monto float,
 	"Id_Factura2" integer,
 	"cod_Cliente2" integer,
 	"Nombre2" varchar(50),
-	cod_medio_pago integer,
+	cod_medio_pago varchar(15),
 	"claveDW_Ventas" serial	
 );
 
-
 --"Fecha","Id_Tiempo","Id_Factura","Id_Cliente","Id_Producto"
 --"Id_Sucursal" , "Monto_vendido", "Cantidad_Vendida", "Id_Medio_Pago"  
+CREATE OR REPLACE FUNCTION "agregar_A_EqVentas"() RETURNS void AS
+$$
+DECLARE
+medio text;
+cursor_temp CURSOR FOR SELECT * FROM "tmp_V2";
+row_temp RECORD; 
+BEGIN
+	
+	FOR row_temp IN cursor_temp LOOP
+		
+		CASE row_temp.cod_medio_pago
+			WHEN 1 THEN 
+				medio = 'EFECTIVO';
+			WHEN 2 THEN
+				medio = 'DEBITO';
+			WHEN 3 THEN
+				medio = 'CREDITO';
+			ELSE
+				medio = 'CHEQUE';
+		END CASE;
+		INSERT INTO "Eq_Ventas" VALUES(null,null,null,null,null,row_temp.fecha,row_temp.tiempo,row_temp.factura,row_temp.id_prod,row_temp.cantidad,row_temp.precio,row_temp.cliente,row_temp.nombre,medio);
+	END LOOP;
+END
+$$
+LANGUAGE plpgsql;
+
+
+
 CREATE OR REPLACE FUNCTION "llenar_Ventas"() RETURNS void AS
 $$
 DECLARE 
+medio text;
 cursor_ventas CURSOR FOR SELECT * FROM "Eq_Ventas";
 row_venta RECORD; 
 BEGIN
@@ -159,32 +190,23 @@ BEGIN
 						     "Tiempo" WHERE fecha = row_venta."Fecha_Vta1"),
 						     row_venta."claveDW_Ventas",row_venta."nro_Cliente1",
 						     (SELECT nro_producto FROM dblink('conexionFacturacion1',
-						     'SELECT nro_producto FROM "Detalle_Vta" WHERE nro_factura =
-						      row_venta."nroFactura1"') AS prodf1(nro_producto integer)),
+						     'SELECT nro_producto FROM "Detalle_Vta" WHERE nro_factura ='
+						      || row_venta."nro_Factura1") AS prodf1(nro_producto integer)),
 						      1,(SELECT precio FROM dblink('conexionFacturacion1',
-						     'SELECT precio FROM "Detalle_Vta" WHERE nro_factura =
-						      row_venta."nroFactura1"') AS precf1(precio float)),
+						     'SELECT precio FROM "Detalle_Vta" WHERE nro_factura ='||
+						      row_venta."nro_Factura1") AS precf1(precio float)),
 						      (SELECT cantidad FROM dblink('conexionFacturacion1',
-						     'SELECT cantidad FROM "Detalle_Vta" WHERE nro_factura =
-						      row_venta."nroFactura1"') AS cantf1(cantidad float)),
+						     'SELECT cantidad FROM "Detalle_Vta" WHERE nro_factura ='||
+						      row_venta."nro_Factura1") AS cantf1(cantidad float)),
 						      row_venta.forma_pago1);
 		ELSE
-			INSERT INTO "Ventas" VALUES (row_venta."Fecha_Vta2","Id_Tiempo2",
-						     row_venta."claveDW_Ventas",row_venta."cod_Cliente2",
-						     (SELECT cod_producto FROM dblink('conexionFacturacion2a',
-						     'SELECT cod_producto FROM "Detalle_Venta" 
-						     WHERE "Id_Factura"=row_venta."Id_Factura2"')
-						     AS prodf2(cod_producto integer)),2,
-						     (SELECT precio FROM dblink('conexionFacturacion2a',
-						     'SELECT precio FROM "Detalle_Venta" 
-						     WHERE "Id_Factura"=row_venta."Id_Factura2"')
-						     AS preciof2(precio float)), 
-						     (SELECT unidad FROM dblink('conexionFacturacion2a',
-						     'SELECT unidad FROM "Detalle_Venta" 
-						     WHERE "Id_Factura"=row_venta."Id_Factura2"')
-						     AS cantf2(unidad integer)), row_venta.cod_medio_pago2);
 
+			INSERT INTO "Ventas" VALUES (
+						(SELECT row_venta."Fecha_Vta2",row_venta."Id_Tiempo2",row_venta."Id_Factura",
+						eq."id_Prod",2,eq.monto,eq.cantidad,eq.cod_medio_pago
+						FROM "Eq_Ventas" WHERE row_venta."Id_Factura"="Eq_Ventas"."claveDW_Ventas"));
 		END IF;
+		
 	END LOOP;
 END;
 $$ 
@@ -197,38 +219,87 @@ CREATE OR REPLACE FUNCTION "crear_Ventas"() RETURNS TEXT AS
 $$
 DECLARE
 BEGIN
-	INSERT INTO "Eq_Ventas" (
-		(SELECT "Fecha_Vta1","nro_Factura1","nro_Cliente1","Nombre1",forma_pago1,
-		"Fecha_Vta2","Id_Tiempo2","Id_Factura2","cod_Cliente2","Nombre2",cod_medio_pago2
+	INSERT INTO "Eq_Ventas" ((SELECT "Fecha_Vta1","nro_Factura1","nro_Cliente1",
+		"Nombre1",forma_pago1,"Fecha_Vta2","Id_Tiempo2","id_Prod","Id_Factura2",
+		"cod_Cliente2","Nombre2",cod_medio_pago2
 		FROM dblink('conexionFacturacion1','SELECT 
 		"nro_Factura","Fecha_Vta","nro_Cliente","Nombre",forma_pago,
-		null,null,null,null,null,null
+		null,null,null,null,null,null,null
 		FROM "Venta"') AS ventasf1("nro_Factura1" integer,"Fecha_Vta1" date,
 		"nro_Cliente1" integer,"Nombre1" varchar(50),forma_pago1 t_forma_pago,
-		"Fecha_Vta2" date,"Id_Tiempo2" integer,"Id_Factura2" integer,
-		"cod_Cliente2" integer, "Nombre2" varchar(50), cod_medio_pago2 integer))
-		UNION ALL
-		(SELECT "Fecha_Vta1","nro_Factura1","nro_Cliente1","Nombre1",forma_pago1,
-		"Fecha_Vta2","Id_Tiempo2","Id_Factura2","cod_Cliente2","Nombre2",
-		cod_medio_pago2 FROM dblink('conexionFacturacion2a','SELECT null,null,null,
-		null,null,"Fecha_Vta","Id_Tiempo","Id_Factura","cod_Cliente","Nombre",cod_medio_pago
-		FROM "Venta"')AS ventasf2("nro_Factura1" integer,"Fecha_Vta1" date,
-		"nro_Cliente1" integer,"Nombre1" varchar(50),forma_pago1 t_forma_pago,
-		"Fecha_Vta2" date,"Id_Tiempo2" integer,"Id_Factura2" integer,
+		"Fecha_Vta2" date,"id_Prod" integer,"Id_Tiempo2" integer,"Id_Factura2" integer,
 		"cod_Cliente2" integer, "Nombre2" varchar(50), cod_medio_pago2 integer))
 		);
+	CREATE TABLE "tmp_V2"(
+		fecha date,
+		tiempo integer,
+		id_prod integer,
+		factura integer,
+		cliente integer,
+		nombre varchar(50),
+		cod_medio_pago integer,
+		cantidad integer,
+		precio float
+	);
+	INSERT INTO "tmp_V2" (
+		SELECT ventasf2."Fecha_Vta2",ventasf2."Id_Tiempo2",ventasf2."id_Prod",ventasf2."Id_Factura2",ventasf2."cod_Cliente2",ventasf2."Nombre2",
+		ventasf2.cod_medio_pago2, ventasf2.cantidad, ventasf2.precio FROM dblink('conexionFacturacion2a','SELECT v."Fecha_Vta",
+		v."Id_Tiempo",d.cod_producto,v."Id_Factura",v."cod_Cliente",v."Nombre",v.cod_medio_pago, sum(d.unidad) as cantidad, sum(d.precio) as precio
+		FROM "Venta" v, "Detalle_Venta" d WHERE v."Id_Factura"=d."Id_Factura"  GROUP BY (v."Id_Factura",d.cod_producto) ')AS ventasf2("Fecha_Vta2" date,"Id_Tiempo2" integer,
+		"id_Prod" integer,"Id_Factura2" integer,"cod_Cliente2" integer, "Nombre2" varchar(50),
+		cod_medio_pago2 integer, cantidad integer, precio float) 
+		);
+	PERFORM (SELECT "agregar_A_EqVentas"());
+	DROP TABLE "tmp_V2";	
+	
 	PERFORM (SELECT "llenar_Ventas"());
 	RETURN 'OK';
 END
 $$
 LANGUAGE plpgsql;
 
+
 SELECT "crear_Ventas"();
+---------------------------
+-------------------
+/*
 
+CREATE OR REPLACE FUNCTION "llenar_Detalle"(fecha date, t integer, f integer, c integer,n text, cmp text, id_dw integer)RETURNS void AS
+$$
+DECLARE
+cursor_detalles CURSOR FOR SELECT * FROM "tmp_Detalle";
+row_detalle RECORD; 
+BEGIN
+	INSERT INTO "tmp_Detalle" (
+			SELECT cod_producto,precio,unidad FROM(
+			(SELECT id_f,cod_producto FROM dblink('conexionFacturacion2a',
+			'SELECT "Id_Factura",cod_producto FROM "Detalle_Venta" 
+		         WHERE "Id_Factura"=' || f)
+			 AS prodf2(id_f integer,cod_producto integer)) AS t0
+			 INNER JOIN (SELECT id_f,precio FROM dblink('conexionFacturacion2a',
+				      'SELECT "Id_Factura",precio FROM "Detalle_Venta" 
+		   	 	       WHERE "Id_Factura"=' || f)
+				       AS preciof2(id_f integer,precio float)) AS t1 
+			ON t0.id_f=t1.id_f
+			INNER JOIN (SELECT id_f,unidad FROM dblink('conexionFacturacion2a',
+				    'SELECT "Id_Factura",unidad FROM "Detalle_Venta" 
+				     WHERE "Id_Factura"='||f)
+				     AS cantf2(id_f integer,unidad integer)) AS t2
+			ON t0.id_f = t2.id_f)
+		);
 
-
-
-
+	FOR row_detalle IN cursor_detalles LOOP
+		INSERT INTO "Eq_Ventas" VALUES(null,null,null,null,null,fecha,t,f,c,cmp);
+	END LOOP;
+	DROP TABLE "tmp_Detalle";
+	
+END
+$$
+LANGUAGE plpgsql;
+*/
+---------------
+------------------
+-----------------------------------------------------------------------------------------
 --Inserto tuplas en la tabla Local Categoria a partir de las tablas remotas 
 --categoria de facturacion1 y de facturacion2.
 INSERT INTO "Categoria" (
@@ -245,7 +316,7 @@ FULL OUTER JOIN (
 		) f2 ON f1.nro_categ1 = f2.nro_categ2 );
 --Inserto a la tabla Productos Local los elementos de producto pertenecientes a las 2 tablas 
 --remotas de productos(Productos ->Facturacion1 // Productos ->Facturacion2).
-
+--------------------------------------------------------
 CREATE OR REPLACE FUNCTION "llenar_Productos"() RETURNS void AS
 $$
 DECLARE 
@@ -262,7 +333,7 @@ BEGIN
 END;
 $$LANGUAGE plpgsql;
 
-
+--------------------------------------------
 CREATE OR REPLACE FUNCTION "cargar_Productos"() RETURNS text AS 
 $$
 DECLARE
@@ -298,7 +369,7 @@ ALTER TABLE "Productos" ADD CONSTRAINT "fk_Categoria" FOREIGN KEY ("Id_Categoria
 
 --Inserto tuplas en la tabla Local Cliente a partir de las tablas remotas 
 --categoria de facturacion1 y de facturacion2.
---HERRAMIENTA DE CARGA DEL DATAWAREHOUSE.
+--------------------------------------------
 CREATE OR REPLACE FUNCTION "llenar_Clientes"() RETURNS void AS
 $$
 DECLARE
@@ -327,6 +398,7 @@ END
 $$
 LANGUAGE plpgsql;
 --Función de carga para la tabla local Clientes utilizando los datos de clientes en facturacion1 y facturacion2.
+-----------------------------------
 CREATE OR REPLACE FUNCTION "cargar_Clientes"() RETURNS TEXT AS
 $$
 DECLARE
@@ -358,7 +430,6 @@ END
 $$
 LANGUAGE plpgsql;
 --Utilizo Funcion para inicializar la tabla local Clientes.
-
 SELECT "cargar_Clientes"();
 --Asigno a la tabla local "Tipo_Cliente" los valores de la tabla remota "Tipo_Cliente" de Facturacion1
 INSERT INTO "Tipo_Cliente" (
@@ -366,16 +437,7 @@ INSERT INTO "Tipo_Cliente" (
 			    FROM dblink('conexionFacturacion2a','SELECT * FROM "Tipo_Cliente"') 
 			    AS tipo_clientef2(ct integer, descr varchar(100)));
 --Asigno a la tabla local "Tiempo" los datos de la tabla remota "Tiempo" de la BD Facturacion2.
-
-
-/*
-SELECT idTf2,fecha2,diaf2,mesf2,trimestref2,añof2 
-				FROM dblink('conexionFacturacion2a',
-					    'SELECT "Id_fecha",fecha,dia,mes,trimestre,año FROM "Tiempo"') 
-					    AS (idTf2 integer,fecha2 date, diaf2 integer, mesf2 integer, 
-					    trimestref2 integer, añof2 integer)
-*/
-
+------------------------
 CREATE OR REPLACE FUNCTION "llenar_Tiempo2"() RETURNS void AS
 $$
 DECLARE
@@ -401,7 +463,7 @@ END
 $$
 LANGUAGE plpgsql;
 
-
+---------------------------------
 CREATE OR REPLACE FUNCTION "llenar_Tiempo1"() RETURNS void AS
 $$
 DECLARE
@@ -445,7 +507,7 @@ BEGIN
 END
 $$
 LANGUAGE plpgsql; 
-
+--------------------
 CREATE OR REPLACE FUNCTION"crear_Tiempo"() RETURNS TEXT AS
 $$
 DECLARE
@@ -565,7 +627,6 @@ LANGUAGE plpgsql;
 INSERT INTO "Distribucion_Geografica" VALUES (1,'DISTRIBUCION GEOGRAFICA NUMERO 1',1);
 --Utilizo la funcion para agregar tuplas a la tabla "Distribucion_Geografica".
 SELECT "crear_DG"(9);
-
 
 
 --Cierro las conexiones.
