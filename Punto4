@@ -1,0 +1,24 @@
+﻿--Punto 4.
+
+--a)
+SELECT v."Fecha",v."Id_Factura",v."Id_Producto",
+       t.mes,t.año,dg."Id_Sucursal",dg.descripcion,
+       c."Id_Cliente",c."Nombre", r."Id_Region",
+       r.descripcion,SUM (v."Monto_vendido") AS "Ventas",
+       SUM(v."Cantidad_Vendida") AS "Cantidad Vendida"
+FROM "Ventas" v,"Tiempo" t, "Distribucion_Geografica" dg, "Clientes" c, "Ciudad" ciu, "Provincia" p, "Region" r
+WHERE v."Id_Tiempo" = t."Id_Tiempo" AND v."Id_Sucursal" = dg."Id_Sucursal" AND v."Id_Cliente" = c."Id_Cliente"
+      AND dg."Id_Ciudad"=ciu."Id_Ciudad" AND ciu."Id_Provincia"=p."Id_Provincia" AND p."Id_Region"=r."Id_Region"
+GROUP BY CUBE (	(v."Fecha",v."Id_Factura",v."Id_Producto"),
+		(t.mes),(t.año),(dg."Id_Sucursal",dg.descripcion),
+		(r."Id_Region",r.descripcion),(c."Id_Cliente",c."Nombre")
+	       );
+
+
+
+
+
+
+
+
+	       
