@@ -1,6 +1,7 @@
 ﻿--Punto 4.
 
 --a)
+--Por cada venta, mostrar segun las dimensiones solicitadas.
 SELECT v."Fecha",v."Id_Factura",v."Id_Producto",
        t.mes,t.año,dg."Id_Sucursal",dg.descripcion,
        c."Id_Cliente",c."Nombre", r."Id_Region",
@@ -13,6 +14,14 @@ GROUP BY CUBE (	(v."Fecha",v."Id_Factura",v."Id_Producto"),
 		(t.mes),(t.año),(dg."Id_Sucursal",dg.descripcion),
 		(r."Id_Region",r.descripcion),(c."Id_Cliente",c."Nombre")
 	       );
+
+--b)
+--Por producto vendido, monto obtenido y cantidad de unidades vendida.
+SELECT "Id_Producto", SUM("Cantidad_Vendida") AS Ventas, SUM("Monto_vendido")
+FROM "Ventas"
+GROUP BY ("Id_Producto")
+
+--c)
 
 
 
