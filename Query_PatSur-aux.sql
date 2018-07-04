@@ -184,7 +184,7 @@ BEGIN
 			ELSE
 				medio = 'CHEQUE';
 		END CASE;
-		INSERT INTO "Eq_Ventas" VALUES(null,null,null,null,null,row_temp.fecha,row_temp.tiempo,row_temp.factura,row_temp.id_prod,row_temp.cantidad,row_temp.precio,row_temp.cliente,row_temp.nombre,medio);
+		INSERT INTO "Eq_Ventas" VALUES(null,null,null,null,null,row_temp.fecha,row_temp.tiempo,row_temp.id_prod,row_temp.cantidad,row_temp.precio,row_temp.factura,row_temp.cliente,row_temp.nombre,medio);
 	END LOOP;
 END
 $$
@@ -215,11 +215,11 @@ BEGIN
 						      row_venta."nro_Factura1") AS cantf1(cantidad float)),
 						      row_venta.forma_pago1);
 		ELSE
-
-			INSERT INTO "Ventas" VALUES (
-						(SELECT row_venta."Fecha_Vta2",row_venta."Id_Tiempo2",row_venta."Id_Factura",
-						eq."id_Prod",2,eq.monto,eq.cantidad,eq.cod_medio_pago
-						FROM "Eq_Ventas" WHERE row_venta."Id_Factura"="Eq_Ventas"."claveDW_Ventas"));
+		
+			INSERT INTO "Ventas" (SELECT row_venta."Fecha_Vta2",row_venta."Id_Tiempo2",row_venta."Id_Factura2",row_venta."cod_Cliente2",
+						row_venta."id_Prod",2,row_venta.monto,row_venta.cantidad, row_venta.cod_medio_pago 
+						--FROM "Eq_Ventas" eq WHERE row_venta."Id_Factura2"=eq."claveDW_Ventas" 
+						 ) ;
 		END IF;
 		
 	END LOOP;
@@ -227,6 +227,7 @@ END;
 $$ 
 LANGUAGE plpgsql;
 
+SELECT "crear_Ventas"();
 --Inserto tuplas en la tabla local Ventas a partir de las tablas remotas 
 --categoria de facturacion1 y de facturacion2.
 
@@ -241,7 +242,7 @@ BEGIN
 		"nro_Factura","Fecha_Vta","nro_Cliente","Nombre",forma_pago,
 		null,null,null,null,null,null,null,null,null
 		FROM "Venta"') AS ventasf1("nro_Factura1" integer,"Fecha_Vta1" date,
-		"nro_Cliente1" integer,"Nombre1" varchar(50),forma_pago1 t_forma_pago,
+		"nro_Cliente1" integer,"Nombre1" varchar(50),forma_pago1 varchar(15),
 		"Fecha_Vta2" date,"id_Prod" integer,cantidad integer, monto float,"Id_Tiempo2" integer,"Id_Factura2" integer,
 		"cod_Cliente2" integer, "Nombre2" varchar(50), cod_medio_pago2 integer))
 		);
@@ -257,7 +258,7 @@ BEGIN
 		precio float
 	);
 	INSERT INTO "tmp_V2" (
-		SELECT ventasf2."Fecha_Vta2",ventasf2."Id_Tiempo2",ventasf2."id_Prod",ventasf2."Id_Factura2",ventasf2."cod_Cliente2",ventasf2."Nombre2",
+		SELECT ventasf2."Fecha_Vta2",ventasf2."Id_Tiempo2",ventasf2."Id_Factura2",ventasf2."id_Prod",ventasf2."cod_Cliente2",ventasf2."Nombre2",
 		ventasf2.cod_medio_pago2, ventasf2.cantidad, ventasf2.precio FROM dblink('conexionFacturacion2a','SELECT v."Fecha_Vta",
 		v."Id_Tiempo",d.cod_producto,v."Id_Factura",v."cod_Cliente",v."Nombre",v.cod_medio_pago, sum(d.unidad) as cantidad, sum(d.precio) as precio
 		FROM "Venta" v, "Detalle_Venta" d WHERE v."Id_Factura"=d."Id_Factura"  GROUP BY (v."Id_Factura",d.cod_producto) ')AS ventasf2("Fecha_Vta2" date,"Id_Tiempo2" integer,
