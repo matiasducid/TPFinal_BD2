@@ -547,11 +547,10 @@ LANGUAGE plpgsql;
 
 SELECT "crear_Tiempo"();
 
---TODO: 
 --Asigno a la tabla local "Medios" los valores de la tabla remota "Medio_Pago"
-INSERT INTO "Medios" (SELECT codf2, descf2 FROM dblink('conexionFacturacion2a',
-				 'SELECT "cod_Medio_Pago",descripcion FROM "Medio_Pago"') 
-				 AS (codf2 t_forma_pago, descf2 varchar(100)));
+INSERT INTO "Medios" (SELECT codf2, descf2 
+			FROM dblink('conexionFacturacion2a','SELECT "tipo_operacion",descripcion FROM "Medio_Pago"') 
+			AS (codf2 t_forma_pago, descf2 varchar(100)));
 ---------------------------------------
 
 CREATE OR REPLACE FUNCTION "crear_Region"(cantidad integer) RETURNS TEXT AS
