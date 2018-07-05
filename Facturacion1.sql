@@ -1,6 +1,11 @@
 ﻿CREATE DOMAIN t_tipo AS varchar(10)
 	DEFAULT 'TIPO 1'
 	CHECK (VALUE IN ('TIPO 1','TIPO 2','TIPO 3','TIPO 4') );
+
+CREATE DOMAIN t_forma_pago varchar(15)
+	DEFAULT 'EFECTIVO'
+	CHECK (VALUE IN('EFECTIVO','DEBITO','CREDITO','CHEQUE'));
+
 CREATE TABLE "Clientes" (
 	"nro_Cliente" integer NOT NULL,
 	"Nombre" varchar(50) NOT NULL,
@@ -14,9 +19,17 @@ CREATE TABLE "Categoria" (
 	CONSTRAINT "pk_Categoria" PRIMARY KEY (nro_categ)
 );
 
-CREATE DOMAIN t_forma_pago varchar(15)
-	DEFAULT 'EFECTIVO'
-	CHECK (VALUE IN('EFECTIVO','DEBITO','CREDITO','CHEQUE'));
+--Creo la Tabla Productos.
+CREATE TABLE "Producto" (
+	"nro_Producto" integer NOT NULL,
+	"Nombre" varchar(50) NOT NULL,
+	nro_categ integer NOT NULL,
+	precio_actual integer NOT NULL,
+	CONSTRAINT "pk_Producto" PRIMARY KEY ("nro_Producto"),
+	CONSTRAINT fk_nro_categ FOREIGN KEY (nro_categ) REFERENCES public."Categoria" (nro_categ)
+);
+
+
 CREATE TABLE "Venta" (
 	"nro_Factura" integer NOT NULL,
 	"Fecha_Vta" date NOT NULL,
@@ -24,7 +37,7 @@ CREATE TABLE "Venta" (
 	"Nombre" varchar(50),
 	forma_pago  t_forma_pago,
 	CONSTRAINT "pk_Venta" PRIMARY KEY ("nro_Factura"),
-	CONSTRAINT "fk_nro_Cliente" FOREIGN KEY ("nro_Cliente") REFERENCES public."Clientes" ("nro_Cliente") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE;
+	CONSTRAINT "fk_nro_Cliente" FOREIGN KEY ("nro_Cliente") REFERENCES public."Clientes" ("nro_Cliente") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
 --	CONSTRAINT "fk_Nombre" FOREIGN KEY ("Nombre") REFERENCES public."Clientes" ("Nombre") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
 );
 --el campo cantidad, es en el pdf, unidad.
@@ -38,15 +51,6 @@ CREATE TABLE "Detalle_Vta" (
 	CONSTRAINT fk_nro_producto FOREIGN KEY (nro_producto) REFERENCES public."Producto" ("nro_Producto") MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE
 );
 
---Creo la Tabla Productos.
-CREATE TABLE "Producto" (
-	"nro_Producto" integer NOT NULL,
-	"Nombre" varchar(50) NOT NULL,
-	nro_categ integer NOT NULL,
-	precio_actual integer NOT NULL,
-	CONSTRAINT "pk_Producto" PRIMARY KEY ("nro_Producto"),
-	CONSTRAINT fk_nro_categ FOREIGN KEY (nro_categ) REFERENCES public."Categoria" (nro_categ)
-);
 --___________________________________________________________________________________________________________________________________
 
 
@@ -97,8 +101,12 @@ BEGIN
 END
 $$
 LANGUAGE plpgsql; 
+
+--Se crea el primer elemento (Precondición de la función).
+INSERT INTO "Clientes" VALUES (1,'Juan Perez','TIPO 1','Av Siempreviva 123');
+
 --Llamada a la funcion para agregar clientes.
-SELECT ("agregar_Clientes"(8))
+SELECT ("agregar_Clientes"(8));
 
 --Definición de la funcion "crearCategorias" crea categorias distintas para cada tipo nuevo según el número pasado por parámetro.
 CREATE OR REPLACE FUNCTION "crear_Categorias"(cantidad integer) RETURNS TEXT AS
@@ -167,8 +175,8 @@ BEGIN
 		nro_factura_detalle_vta = (SELECT MAX(nro_factura)FROM "Detalle_Vta") +1;
 		nro_producto_detalle_vta = (SELECT CEIL(random()*(SELECT MAX("nro_Producto") FROM "Producto")));
 		descripcion_detalle_vta = ('DESCRIPCIÓN ' || nro_factura_detalle_vta);
-		cantidad_detalle_vta = (SELECT CEIL(random()*1000));
-		precio_detalle_vta = (SELECT (random()*1000));
+		cantidad_detalle_vta = (SELECT CEIL(random()*120));
+		precio_detalle_vta = (SELECT precio_actual FROM "Producto" WHERE nro_producto_detalle_vta="nro_Producto") * cantidad_detalle_vta;
 		INSERT INTO "Detalle_Vta" VALUES (nro_factura_detalle_vta,nro_producto_detalle_vta,descripcion_detalle_vta,cantidad_detalle_vta,precio_detalle_vta);
 	END LOOP;
 	RETURN 'OK';
